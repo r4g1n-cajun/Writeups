@@ -1,4 +1,5 @@
 ### SolidState: 1
+Some of you may also recognize this box from VHL (Virtual Hacking Labs), you can also gain access through the exploit used there too but you will have to log into the box via SSH manually to trigger the reverse shell. 
 
 #### About
   - Name: SolidState: 1
